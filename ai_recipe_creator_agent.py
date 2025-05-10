@@ -4,7 +4,7 @@ from phi.agent import Agent
 from phi.model.cohere import CohereChat  # Using the Cohere model for Phi.Agent
 
 # Set your API keys (for testing, replace with actual environment variable management in production)
-os.environ["COHERE_API_KEY"] = "d825LVpOBgb73nEe0p1cYguv44LveE12ZctPl4CN"
+os.environ["COHERE_API_KEY"] = "API_KEY"
 
 # Initialize Phi.Agent with Cohere model
 agent = Agent(
