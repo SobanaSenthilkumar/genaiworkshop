@@ -2,7 +2,7 @@ import streamlit as st
 import cohere
 import os
 # Initialize Cohere client (replace with your actual API key)
-api_key = 'd825LVpOBgb73nEe0p1cYguv44LveE12ZctPl4CN'  # Replace with your real key
+api_key = 'API_KEY'  # Replace with your real key
 co = cohere.Client(api_key)
 
 st.set_page_config(page_title="Text-to-Text Generator with Cohere")
