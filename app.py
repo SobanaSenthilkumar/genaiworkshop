@@ -4,7 +4,7 @@ from langchain_community.chat_models import ChatCohere
 from langchain.schema import HumanMessage, SystemMessage
 
 # Set Cohere API key (ensure it's secure for production)
-os.environ["COHERE_API_KEY"] = "d825LVpOBgb73nEe0p1cYguv44LveE12ZctPl4CN"
+os.environ["COHERE_API_KEY"] = "API_KEY"
 
 # Function to get response from Cohere chat model
 def get_cohere_response(question):
