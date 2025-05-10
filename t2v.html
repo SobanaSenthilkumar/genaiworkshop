@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Text to Video with Cohere & LangChain Demo</title>
+<style>
+  body {
+    background: linear-gradient(135deg, #2b5876, #4e4376);
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+  h1 {
+    margin-bottom: 0.2em;
+    font-weight: 700;
+    text-align: center;
+    font-size: 2rem;
+    text-shadow: 1px 1px 8px #000;
+  }
+  textarea {
+    width: 90vw;
+    max-width: 600px;
+    height: 120px;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 1rem;
+    border: none;
+    resize:none;
+    margin-bottom: 1rem;
+  }
+  button {
+    background-color: #6a11cb;
+    background-image: linear-gradient(315deg, #6a11cb 0%, #2575fc 74%);
+    border: none;
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border-radius: 9999px;
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgb(101 89 255 / 0.5);
+    transition: background-color 0.3s ease;
+  }
+  button:active {
+    transform: scale(0.97);
+  }
+  button:hover {
+    background-image: linear-gradient(315deg, #2575fc 0%, #6a11cb 74%);
+  }
+  #videoContainer {
+    margin-top: 1.5rem;
+    width: 360px;
+    height: 270px;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 2px 15px rgba(0,0,0,0.7);
+    background-color: #000;
+  }
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background-color: black;
+  }
+  #status {
+    margin-top: 1rem;
+    font-weight: 700;
+    text-align: center;
+  }
+  @media (max-width: 400px) {
+    textarea {
+      width: 95vw;
+      height: 100px;
+    }
+    #videoContainer {
+      width: 95vw;
+      height: auto;
+      aspect-ratio: 4 / 3;
+    }
+  }
+</style>
+</head>
+<body>
+<h1>Text to Video (Cohere + LangChain Demo)</h1>
+<textarea id="textInput" placeholder="Enter the text you want to convert to video..."></textarea>
+<button id="generateBtn">Generate Video</button>
+<div id="status"></div>
+<div id="videoContainer" style="display:none;">
+  <video id="outputVideo" controls></video>
+</div>
+
+<script>
+  /*
+    IMPORTANT NOTE:
+    - This demo simulates the logic of text-to-video with placeholders because
+      Cohere API and LangChain require backend secure calls and Python environment.
+    - Video creation in-browser is limited, so this demo creates a simple text-based video
+      showing each sentence for 2 seconds using the Web APIs available.
+  */
+
+  const generateBtn = document.getElementById('generateBtn');
+  const statusEl = document.getElementById('status');
+  const videoContainer = document.getElementById('videoContainer');
+  const outputVideo = document.getElementById('outputVideo');
+
+  // We will create video frames with each sentence as a canvas image, then combine them into a video using WebCodecs or Whammy (if available)
+  // For compatibility, we fallback to showing each sentence as separate images in video frames with a simulated approach.
+
+  generateBtn.addEventListener('click', async () => {
+    const inputText = document.getElementById('textInput').value.trim();
+    if (!inputText) {
+      alert('Please enter some text.');
+      return;
+    }
+
+    statusEl.textContent = 'Processing text for video generation...';
+    videoContainer.style.display = 'none';
+    outputVideo.src = '';
+
+    // Simulate Cohere embedding fetching (replace with actual backend call)
+    await fakeCohereEmbedding(inputText);
+
+    // Create video from text segments
+    const sentences = inputText.split('.').map(s => s.trim()).filter(Boolean);
+    if (sentences.length === 0) {
+      statusEl.textContent = 'Could not parse sentences from input text.';
+      return;
+    }
+
+    try {
+      const videoBlob = await createTextVideo(sentences, 640, 480, 2000);
+      const videoUrl = URL.createObjectURL(videoBlob);
+      outputVideo.src = videoUrl;
+      videoContainer.style.display = 'block';
+      statusEl.textContent = 'Video generated successfully! Play below.';
+    } catch (e) {
+      statusEl.textContent = 'Error generating video: ' + e.message;
+    }
+  });
+
+  async function fakeCohereEmbedding(text) {
+    // Simulate delay of async API call to Cohere
+    return new Promise(resolve => setTimeout(resolve, 1500));
+  }
+
+  async function createTextVideo(sentences, width, height, durationPerSentenceMs) {
+    // Create canvas for each sentence as a frame
+    // Use Whammy library approach or MediaRecorder from canvas stream
+
+    return new Promise(async (resolve, reject) => {
+      // Check if browser supports MediaRecorder on canvas captureStream:
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      if (!canvas.captureStream) {
+        reject(new Error('Your browser does not support canvas.captureStream API'));
+        return;
+      }
+
+      const stream = canvas.captureStream(24);  // 24 FPS for smooth animation
+      let recordedChunks = [];
+
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm; codecs=vp8'
+      });
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          recordedChunks.push(e.data);
+        }
+      };
+
+      mediaRecorder.onerror = (e) => reject(e.error);
+
+      mediaRecorder.onstop = () => {
+        const superBuffer = new Blob(recordedChunks, {type: 'video/webm'});
+        resolve(superBuffer);
+      };
+
+      let currentIndex = 0;
+      mediaRecorder.start();
+
+      function drawFrame() {
+        ctx.fillStyle = '#222';
+        ctx.fillRect(0, 0, width, height);
+
+        // Draw text centered
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 40px "Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        const maxTextWidth = width * 0.9;
+        wrapText(ctx, sentences[currentIndex], width / 2, height / 2, maxTextWidth, 50);
+
+        currentIndex++;
+        if (currentIndex >= sentences.length) {
+          setTimeout(() => {
+            mediaRecorder.stop();
+          }, durationPerSentenceMs); // Wait final frame duration to finalize recording
+        } else {
+          setTimeout(drawFrame, durationPerSentenceMs);
+        }
+      }
+
+      drawFrame();
+    });
+  }
+
+  // Utility function to wrap text in canvas
+  function wrapText(context, text, x, y, maxWidth, lineHeight) {
+    const words = text.split(' ');
+    let line = '';
+    let lines = [];
+    for (let n=0; n<words.length; n++) {
+      let testLine = line + words[n] + ' ';
+      let metrics = context.measureText(testLine);
+      let testWidth = metrics.width;
+      if (testWidth > maxWidth && n > 0) {
+        lines.push(line);
+        line = words[n] + ' ';
+      } else {
+        line = testLine;
+      }
+    }
+    lines.push(line);
+
+    const totalHeight = lines.length * lineHeight;
+    let startY = y - totalHeight / 2 + lineHeight/2;
+    for(let i=0; i < lines.length; i++) {
+      context.fillText(lines[i], x, startY + (i * lineHeight));
+    }
+  }
+</script>
+</body>
+</html>
+
